@@ -8,7 +8,7 @@ export function useHealthCheck() {
       const { data } = await api.get("/health");
       return data;
     },
-    refetchInterval: 60_000,
+    refetchInterval: 45_000,
     refetchIntervalInBackground: true,
   });
 }
