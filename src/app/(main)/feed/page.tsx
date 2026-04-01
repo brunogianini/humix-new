@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Rss, UserPlus } from "lucide-react";
+import { Rss, UserPlus, AlertCircle } from "lucide-react";
 import { useFeed } from "@/hooks/useReviews";
 import { ReviewCard } from "@/components/reviews/ReviewCard";
 import { ReviewCardSkeleton } from "@/components/ui/Skeleton";
@@ -19,7 +19,7 @@ export default function FeedPage() {
     if (!isAuthenticated) router.push("/login");
   }, [isAuthenticated, router]);
 
-  const { data, isLoading } = useFeed({ limit: 20 });
+  const { data, isLoading, isError } = useFeed({ limit: 20 });
 
   if (!isAuthenticated) return null;
 
@@ -35,6 +35,11 @@ export default function FeedPage() {
       {isLoading ? (
         <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => <ReviewCardSkeleton key={i} />)}
+        </div>
+      ) : isError ? (
+        <div className="flex flex-col items-center gap-2 py-16 text-muted">
+          <AlertCircle size={32} className="opacity-40" />
+          <p className="text-sm">Não foi possível carregar o feed.</p>
         </div>
       ) : data?.data.length === 0 ? (
         <EmptyState

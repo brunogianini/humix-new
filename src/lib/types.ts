@@ -93,6 +93,7 @@ export interface AlbumSummary {
   coverUrl: string | null;
   releaseYear: number | null;
   inHumix: boolean;
+  spotifyId?: string | null;
   _count: {
     reviews: number;
   };

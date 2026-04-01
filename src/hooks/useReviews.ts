@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { PaginatedResponse, Review } from "@/lib/types";
 import { albumKeys } from "./useAlbums";
+import { useAuthStore } from "@/store/auth";
 
 export const reviewKeys = {
   album: (slug: string, params?: object) => ["reviews", "album", slug, params] as const,
@@ -38,6 +39,7 @@ export function useUserReviews(username: string, params = {}) {
 }
 
 export function useFeed(params = {}) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return useQuery({
     queryKey: reviewKeys.feed(params),
     queryFn: async () => {
@@ -45,6 +47,7 @@ export function useFeed(params = {}) {
       return data;
     },
     staleTime: 30_000,
+    enabled: isAuthenticated,
   });
 }
 

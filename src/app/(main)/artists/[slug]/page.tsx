@@ -1,9 +1,10 @@
 "use client";
-import { use } from "react";
+import { use, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { MapPin, Calendar, Disc3, Music2 } from "lucide-react";
+import { MapPin, Calendar, Disc3, Music2, Plus, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { ArtistWithDiscography } from "@/lib/types";
@@ -11,6 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { AlbumCard } from "@/components/albums/AlbumCard";
 import { Skeleton, AlbumCardSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useImportAlbum } from "@/hooks/useAlbums";
 
 function useArtist(slug: string) {
   return useQuery({
@@ -26,6 +28,19 @@ function useArtist(slug: string) {
 export default function ArtistPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const { data: artist, isLoading } = useArtist(slug);
+  const router = useRouter();
+  const importAlbum = useImportAlbum();
+  const [importingId, setImportingId] = useState<string | null>(null);
+
+  async function handleImport(spotifyId: string) {
+    setImportingId(spotifyId);
+    try {
+      const album = await importAlbum.mutateAsync(spotifyId);
+      router.push(`/albums/${album.slug}`);
+    } catch {
+      setImportingId(null);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -118,7 +133,7 @@ export default function ArtistPage({ params }: { params: Promise<{ slug: string 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {artist.albums.map((album, i) => (
               <motion.div
-                key={album.id}
+                key={i}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
@@ -147,10 +162,26 @@ export default function ArtistPage({ params }: { params: Promise<{ slug: string 
                     <p className="text-xs text-muted">{album.releaseYear}</p>
                   )}
 
-                  {!album.inHumix && (
-                    <Badge variant="default" className="bg-purple-600 text-white">
-                      Não adicionado 
-                    </Badge>
+                  {!album.inHumix && album.spotifyId && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleImport(album.spotifyId!);
+                      }}
+                      disabled={importingId === album.spotifyId}
+                      className="mt-1"
+                    >
+                      <Badge
+                        variant="default"
+                        className="bg-purple-600 text-white hover:bg-purple-500 transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        {importingId === album.spotifyId ? (
+                          <><Loader2 size={10} className="animate-spin" /> Adicionando...</>
+                        ) : (
+                          <><Plus size={10} /> Adicionar ao Humix</>
+                        )}
+                      </Badge>
+                    </button>
                   )}
 
                   
