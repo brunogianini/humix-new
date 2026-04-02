@@ -29,7 +29,7 @@ export function Sidebar() {
   const { user, isAuthenticated, logout } = useAuthStore();
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-60 bg-surface flex flex-col z-40">
+    <aside className="fixed left-0 top-0 h-full w-60 bg-surface hidden md:flex flex-col z-40">
       {/* Logo */}
       <div className="px-6 py-6">
         <Link href="/" className="flex items-center gap-3 group">
