@@ -2,15 +2,86 @@
 import { use, useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { BookmarkPlus, Headphones, CheckCircle, Disc3, StarOff, Star } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { BookmarkPlus, Headphones, CheckCircle, Disc3, StarOff, Star, Shuffle, X } from "lucide-react";
 import { useUserAlbums } from "@/hooks/useAlbums";
 import { useUserReviews } from "@/hooks/useReviews";
-import { AlbumStatus } from "@/lib/types";
+import { AlbumStatus, UserAlbumWithAlbum } from "@/lib/types";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { cn, statusLabel } from "@/lib/utils";
+import { useAuthStore } from "@/store/auth";
+
+function LotteryModal({
+  album,
+  onClose,
+  onRedraw,
+}: {
+  album: UserAlbumWithAlbum;
+  onClose: () => void;
+  onRedraw: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.88, opacity: 0, y: 24 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.88, opacity: 0, y: 24 }}
+        transition={{ type: "spring", damping: 20, stiffness: 300 }}
+        className="relative bg-surface rounded-2xl p-6 max-w-xs w-full shadow-2xl border border-border"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-surface-2 transition-colors"
+        >
+          <X size={16} />
+        </button>
+
+        <p className="text-xs font-semibold text-accent uppercase tracking-widest mb-4">
+          🎲 Álbum sorteado
+        </p>
+
+        <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-surface-2 mb-4 shadow-lg">
+          {album.album.coverUrl ? (
+            <Image src={album.album.coverUrl} alt={album.album.title} fill className="object-cover" sizes="288px" />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-surface-3">
+              <Disc3 size={48} className="text-muted/30" />
+            </div>
+          )}
+        </div>
+
+        <h2 className="text-base font-bold text-foreground leading-tight mb-0.5">
+          {album.album.title}
+        </h2>
+        <p className="text-sm text-muted mb-1">{album.album.artist.name}</p>
+        {album.album.releaseYear && (
+          <p className="text-xs text-muted/50 mb-5">{album.album.releaseYear}</p>
+        )}
+
+        <div className="flex gap-2">
+          <Link href={`/albums/${album.album.slug}`} className="flex-1">
+            <Button variant="primary" size="sm" className="w-full">
+              Ver álbum
+            </Button>
+          </Link>
+          <Button variant="secondary" size="sm" onClick={onRedraw} className="shrink-0">
+            <Shuffle size={14} /> Novo
+          </Button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 type TabValue = AlbumStatus | "ALL" | "SEM_NOTA";
 
@@ -30,8 +101,12 @@ const statusBadgeVariant: Record<AlbumStatus, "warning" | "accent" | "success"> 
 
 export default function UserAlbumsPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
+  const currentUser = useAuthStore((s) => s.user);
+  const isOwn = currentUser?.username === username;
+
   const [activeTab, setActiveTab] = useState<TabValue>("ALL");
   const [page, setPage] = useState(1);
+  const [lottery, setLottery] = useState<UserAlbumWithAlbum | null>(null);
 
   const isSemNota = activeTab === "SEM_NOTA";
 
@@ -68,11 +143,36 @@ export default function UserAlbumsPage({ params }: { params: Promise<{ username:
 
   const semNotaLoading = isSemNota && (loadingListened || loadingReviews);
 
+  // Pool de sorteio: álbuns "quero ouvir" do próprio usuário
+  const { data: wantToListenPool } = useUserAlbums(
+    username,
+    { status: "WANT_TO_LISTEN", limit: 100, page: 1 },
+    { enabled: isOwn }
+  );
+
+  function drawLottery() {
+    const pool = wantToListenPool?.data ?? [];
+    if (!pool.length) return;
+    setLottery(pool[Math.floor(Math.random() * pool.length)]);
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-1">Coleção de @{username}</h1>
-        <p className="text-sm text-muted">{data?.meta.total ?? 0} álbuns</p>
+      <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground mb-1">Coleção de @{username}</h1>
+          <p className="text-sm text-muted">{data?.meta.total ?? 0} álbuns</p>
+        </div>
+        {isOwn && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={drawLottery}
+            disabled={!wantToListenPool?.data.length}
+          >
+            <Shuffle size={14} /> Sortear álbum
+          </Button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -225,6 +325,17 @@ export default function UserAlbumsPage({ params }: { params: Promise<{ username:
           </button>
         </div>
       )}
+
+      {/* Lottery modal */}
+      <AnimatePresence>
+        {lottery && (
+          <LotteryModal
+            album={lottery}
+            onClose={() => setLottery(null)}
+            onRedraw={drawLottery}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
