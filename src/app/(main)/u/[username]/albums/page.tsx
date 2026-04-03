@@ -115,13 +115,17 @@ export default function UserAlbumsPage({ params }: { params: Promise<{ username:
     setPage(1);
   }
 
-  const statusParam = !isSemNota && activeTab !== "ALL" ? (activeTab as AlbumStatus) : undefined;
+  const isFiltered = !isSemNota && activeTab !== "ALL";
 
   const { data, isLoading } = useUserAlbums(
     username,
-    { page, limit: 24, ...(statusParam && { status: statusParam }) },
+    { page, limit: isFiltered ? 100 : 24 },
     { enabled: !isSemNota }
   );
+
+  const displayItems = isFiltered
+    ? (data?.data ?? []).filter((ua) => ua.status === (activeTab as AlbumStatus))
+    : (data?.data ?? []);
 
   // Sem nota: álbuns com status LISTENED mas sem review do usuário
   const { data: listenedAll, isLoading: loadingListened } = useUserAlbums(
@@ -252,7 +256,7 @@ export default function UserAlbumsPage({ params }: { params: Promise<{ username:
             ))}
           </div>
         )
-      ) : (data?.data ?? []).length === 0 ? (
+      ) : displayItems.length === 0 ? (
         <EmptyState
           icon={Disc3}
           title="Nenhum álbum aqui"
@@ -264,7 +268,7 @@ export default function UserAlbumsPage({ params }: { params: Promise<{ username:
         />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {data!.data.map((ua, i) => (
+          {displayItems.map((ua, i) => (
             <motion.div
               key={ua.album.id}
               initial={{ opacity: 0, y: 16 }}
@@ -303,8 +307,8 @@ export default function UserAlbumsPage({ params }: { params: Promise<{ username:
         </div>
       )}
 
-      {/* Pagination */}
-      {!isSemNota && data && data.meta.totalPages > 1 && (
+      {/* Pagination — só na aba ALL */}
+      {activeTab === "ALL" && data && data.meta.totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-8">
           <button
             disabled={!data.meta.hasPrev}
