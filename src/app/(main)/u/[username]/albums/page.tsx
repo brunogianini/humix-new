@@ -126,12 +126,12 @@ export default function UserAlbumsPage({ params }: { params: Promise<{ username:
   // Sem nota: álbuns com status LISTENED mas sem review do usuário
   const { data: listenedAll, isLoading: loadingListened } = useUserAlbums(
     username,
-    { status: "LISTENED", limit: 200, page: 1 },
+    { status: "LISTENED", limit: 100, page: 1 },
     { enabled: isSemNota }
   );
   const { data: reviewsAll, isLoading: loadingReviews } = useUserReviews(
     username,
-    { limit: 200 },
+    { limit: 100 },
     { enabled: isSemNota }
   );
 
