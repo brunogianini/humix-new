@@ -150,12 +150,14 @@ export default function UserAlbumsPage({ params }: { params: Promise<{ username:
   // Pool de sorteio: álbuns "quero ouvir" do próprio usuário
   const { data: wantToListenPool } = useUserAlbums(
     username,
-    { status: "WANT_TO_LISTEN", limit: 100, page: 1 },
+    { limit: 100, page: 1 },
     { enabled: isOwn }
   );
 
   function drawLottery() {
-    const pool = wantToListenPool?.data ?? [];
+    const pool = (wantToListenPool?.data ?? []).filter(
+      (ua) => ua.status === "WANT_TO_LISTEN"
+    );
     if (!pool.length) return;
     setLottery(pool[Math.floor(Math.random() * pool.length)]);
   }
@@ -172,7 +174,7 @@ export default function UserAlbumsPage({ params }: { params: Promise<{ username:
             variant="secondary"
             size="sm"
             onClick={drawLottery}
-            disabled={!wantToListenPool?.data.length}
+            disabled={!wantToListenPool?.data.some((ua) => ua.status === "WANT_TO_LISTEN")}
           >
             <Shuffle size={14} /> Sortear álbum
           </Button>
