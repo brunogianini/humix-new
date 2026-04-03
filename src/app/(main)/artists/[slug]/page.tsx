@@ -2,17 +2,16 @@
 import { use, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { MapPin, Calendar, Disc3, Music2, Plus, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { ArtistWithDiscography } from "@/lib/types";
 import { Badge } from "@/components/ui/Badge";
-import { AlbumCard } from "@/components/albums/AlbumCard";
 import { Skeleton, AlbumCardSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useImportAlbum } from "@/hooks/useAlbums";
+import { toast } from "@/lib/toast";
 
 function useArtist(slug: string) {
   return useQuery({
@@ -28,7 +27,7 @@ function useArtist(slug: string) {
 export default function ArtistPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const { data: artist, isLoading } = useArtist(slug);
-  const router = useRouter();
+  const qc = useQueryClient();
   const importAlbum = useImportAlbum();
   const [importingId, setImportingId] = useState<string | null>(null);
 
@@ -36,8 +35,14 @@ export default function ArtistPage({ params }: { params: Promise<{ slug: string 
     setImportingId(spotifyId);
     try {
       const album = await importAlbum.mutateAsync(spotifyId);
-      router.push(`/albums/${album.slug}`);
+      toast.success(`"${album.title}" adicionado ao Humix!`, {
+        label: "Ver álbum",
+        href: `/albums/${album.slug}`,
+      });
+      qc.invalidateQueries({ queryKey: ["artists", "detail", slug] });
     } catch {
+      toast.error("Não foi possível adicionar o álbum.");
+    } finally {
       setImportingId(null);
     }
   }
@@ -131,63 +136,98 @@ export default function ArtistPage({ params }: { params: Promise<{ slug: string 
           <EmptyState icon={Disc3} title="Sem álbuns cadastrados" />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {artist.albums.map((album, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <Link href={`/albums/${album.slug}`} className="group block">
-                  <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-surface-2 mb-2">
-                    {album.coverUrl ? (
-                      <Image
-                        src={album.coverUrl}
-                        alt={album.title}
-                        fill
-                        sizes="(max-width: 640px) 50vw, 25vw"
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-surface-3">
-                        <Disc3 size={32} className="text-border" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-xl" />
-                  </div>
-                  <p className="text-sm font-semibold text-foreground truncate group-hover:text-accent transition-colors">
-                    {album.title}
-                  </p>
-                  {album.releaseYear && (
-                    <p className="text-xs text-muted">{album.releaseYear}</p>
-                  )}
+            {artist.albums.map((album, i) => {
+              const isImporting = importingId === album.spotifyId;
+              const canImport = !album.inHumix && !!album.spotifyId;
 
-                  {!album.inHumix && album.spotifyId && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleImport(album.spotifyId!);
-                      }}
-                      disabled={importingId === album.spotifyId}
-                      className="mt-1"
-                    >
-                      <Badge
-                        variant="default"
-                        className="bg-purple-600 text-white hover:bg-purple-500 transition-colors cursor-pointer flex items-center gap-1"
-                      >
-                        {importingId === album.spotifyId ? (
-                          <><Loader2 size={10} className="animate-spin" /> Adicionando...</>
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  {album.inHumix ? (
+                    <Link href={`/albums/${album.slug}`} className="group block">
+                      <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-surface-2 mb-2">
+                        {album.coverUrl ? (
+                          <Image
+                            src={album.coverUrl}
+                            alt={album.title}
+                            fill
+                            sizes="(max-width: 640px) 50vw, 25vw"
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
                         ) : (
-                          <><Plus size={10} /> Adicionar ao Humix</>
+                          <div className="absolute inset-0 flex items-center justify-center bg-surface-3">
+                            <Disc3 size={32} className="text-border" />
+                          </div>
                         )}
-                      </Badge>
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-xl" />
+                      </div>
+                      <p className="text-sm font-semibold text-foreground truncate group-hover:text-accent transition-colors">
+                        {album.title}
+                      </p>
+                      {album.releaseYear && (
+                        <p className="text-xs text-muted">{album.releaseYear}</p>
+                      )}
+                    </Link>
+                  ) : (
+                    <button
+                      className="group block text-left w-full"
+                      onClick={() => canImport && handleImport(album.spotifyId!)}
+                      disabled={isImporting}
+                    >
+                      <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-surface-2 mb-2">
+                        {album.coverUrl ? (
+                          <Image
+                            src={album.coverUrl}
+                            alt={album.title}
+                            fill
+                            sizes="(max-width: 640px) 50vw, 25vw"
+                            className="object-cover transition-transform duration-500 group-hover:scale-105 opacity-60 group-hover:opacity-80 transition-opacity"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center bg-surface-3">
+                            <Disc3 size={32} className="text-border" />
+                          </div>
+                        )}
+                        {/* Import overlay */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
+                          {isImporting ? (
+                            <Loader2 size={22} className="text-white animate-spin" />
+                          ) : (
+                            <>
+                              <div className="w-9 h-9 rounded-full bg-accent/90 flex items-center justify-center">
+                                <Plus size={18} className="text-white" />
+                              </div>
+                              <span className="text-xs font-semibold text-white px-2 text-center leading-tight">
+                                Adicionar ao Humix
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {/* "Not in catalog" badge — always visible */}
+                        <div className="absolute bottom-2 left-2">
+                          <Badge
+                            variant="default"
+                            className="bg-black/70 text-white/70 text-[10px] flex items-center gap-1"
+                          >
+                            <Plus size={9} /> Não catalogado
+                          </Badge>
+                        </div>
+                      </div>
+                      <p className="text-sm font-semibold text-foreground/70 truncate group-hover:text-foreground transition-colors">
+                        {album.title}
+                      </p>
+                      {album.releaseYear && (
+                        <p className="text-xs text-muted">{album.releaseYear}</p>
+                      )}
                     </button>
                   )}
-
-                  
-                </Link>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </div>

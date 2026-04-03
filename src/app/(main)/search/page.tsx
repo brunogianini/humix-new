@@ -10,6 +10,7 @@ import { AlbumCard } from "@/components/albums/AlbumCard";
 import { AlbumCardSkeleton } from "@/components/ui/Skeleton";
 import { useSpotifySearch, useImportAlbum, useAlbums } from "@/hooks/useAlbums";
 import { useDebounce } from "@/hooks/useDebounce";
+import { toast } from "@/lib/toast";
 import Image from "next/image";
 
 export default function SearchPage() {
@@ -39,8 +40,13 @@ export default function SearchPage() {
       setImportingId(spotifyId);
       try {
         const album = await importAlbum.mutateAsync(spotifyId);
-        router.push(`/albums/${album.slug}`);
+        toast.success(`"${album.title}" importado!`, {
+          label: "Ver álbum",
+          href: `/albums/${album.slug}`,
+        });
       } catch {
+        toast.error("Não foi possível importar o álbum.");
+      } finally {
         setImportingId(null);
       }
     },
