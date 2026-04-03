@@ -126,6 +126,7 @@ export function useImportAlbum() {
         "/albums/import",
         { spotifyId }
       );
+      await api.put(`/albums/user/${data.id}`, { status: "WANT_TO_LISTEN" });
       return data;
     },
     onSuccess: () => {
