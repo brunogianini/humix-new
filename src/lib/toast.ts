@@ -1,5 +1,8 @@
-// Lightweight toast utility (no extra deps)
+import { useToastStore } from "@/store/toasts";
+
 export const toast = {
-  success: (msg: string) => console.info("[toast]", msg),
-  error: (msg: string) => console.error("[toast]", msg),
+  success: (message: string, action?: { label: string; href: string }) =>
+    useToastStore.getState().add({ type: "success", message, action }),
+  error: (message: string) =>
+    useToastStore.getState().add({ type: "error", message }),
 };
