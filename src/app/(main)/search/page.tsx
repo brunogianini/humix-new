@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { AlbumCard } from "@/components/albums/AlbumCard";
 import { AlbumCardSkeleton } from "@/components/ui/Skeleton";
-import { useSpotifySearch, useImportAlbum, useAlbums } from "@/hooks/useAlbums";
+import { useSpotifySearch, useImportAlbum, useAlbums, albumKeys } from "@/hooks/useAlbums";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useQueryClient } from "@tanstack/react-query";
+import { SpotifySearchResult } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import Image from "next/image";
 
@@ -30,6 +32,7 @@ export default function SearchPage() {
   );
 
   const importAlbum = useImportAlbum();
+  const qc = useQueryClient();
 
   const handleImport = useCallback(
     async (spotifyId: string, importedSlug: string | null) => {
@@ -44,13 +47,22 @@ export default function SearchPage() {
           label: "Ver álbum",
           href: `/albums/${album.slug}`,
         });
+        qc.setQueryData(
+          albumKeys.spotifySearch(debouncedQuery),
+          (old: SpotifySearchResult[] | undefined) =>
+            old?.map((r) =>
+              r.spotifyId === spotifyId
+                ? { ...r, alreadyImported: true, importedSlug: album.slug }
+                : r
+            )
+        );
       } catch {
         toast.error("Não foi possível importar o álbum.");
       } finally {
         setImportingId(null);
       }
     },
-    [importAlbum, router]
+    [importAlbum, router, qc, debouncedQuery]
   );
 
   const isLoading = mode === "catalog" ? loadingCatalog : loadingSpotify;
