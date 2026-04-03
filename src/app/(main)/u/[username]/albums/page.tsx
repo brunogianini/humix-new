@@ -29,12 +29,18 @@ export default function UserAlbumsPage({ params }: { params: Promise<{ username:
   const [activeTab, setActiveTab] = useState<AlbumStatus | "ALL">("ALL");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useUserAlbums(username, { page, limit: 24 });
+  function handleTabChange(tab: AlbumStatus | "ALL") {
+    setActiveTab(tab);
+    setPage(1);
+  }
 
-  const filtered =
-    activeTab === "ALL"
-      ? data?.data ?? []
-      : (data?.data ?? []).filter((ua) => ua.status === activeTab);
+  const statusParam = activeTab !== "ALL" ? activeTab : undefined;
+
+  const { data, isLoading } = useUserAlbums(username, {
+    page,
+    limit: 24,
+    ...(statusParam && { status: statusParam }),
+  });
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
@@ -48,7 +54,7 @@ export default function UserAlbumsPage({ params }: { params: Promise<{ username:
         {tabs.map(({ value, label, icon: Icon }) => (
           <button
             key={value}
-            onClick={() => setActiveTab(value)}
+            onClick={() => handleTabChange(value)}
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
               activeTab === value
@@ -73,15 +79,19 @@ export default function UserAlbumsPage({ params }: { params: Promise<{ username:
             </div>
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : (data?.data ?? []).length === 0 ? (
         <EmptyState
           icon={Disc3}
           title="Nenhum álbum aqui"
-          description={activeTab === "ALL" ? "A coleção está vazia." : `Nenhum álbum com status "${statusLabel[activeTab]}".`}
+          description={
+            activeTab === "ALL"
+              ? "A coleção está vazia."
+              : `Nenhum álbum com status "${statusLabel[activeTab]}".`
+          }
         />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {filtered.map((ua, i) => (
+          {data!.data.map((ua, i) => (
             <motion.div
               key={ua.album.id}
               initial={{ opacity: 0, y: 16 }}
