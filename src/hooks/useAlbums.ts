@@ -51,7 +51,11 @@ export function useAlbumDetail(slug: string) {
   });
 }
 
-export function useUserAlbums(username: string, params = {}) {
+export function useUserAlbums(
+  username: string,
+  params: Record<string, unknown> = {},
+  options: { enabled?: boolean } = {}
+) {
   return useQuery({
     queryKey: albumKeys.userAlbums(username, params),
     queryFn: async () => {
@@ -61,7 +65,7 @@ export function useUserAlbums(username: string, params = {}) {
       );
       return data;
     },
-    enabled: !!username,
+    enabled: !!username && options.enabled !== false,
   });
 }
 

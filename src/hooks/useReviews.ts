@@ -24,7 +24,11 @@ export function useAlbumReviews(albumSlug: string, params = {}) {
   });
 }
 
-export function useUserReviews(username: string, params = {}) {
+export function useUserReviews(
+  username: string,
+  params: Record<string, unknown> = {},
+  options: { enabled?: boolean } = {}
+) {
   return useQuery({
     queryKey: reviewKeys.user(username, params),
     queryFn: async () => {
@@ -34,7 +38,7 @@ export function useUserReviews(username: string, params = {}) {
       );
       return data;
     },
-    enabled: !!username,
+    enabled: !!username && options.enabled !== false,
   });
 }
 
