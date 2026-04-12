@@ -28,7 +28,7 @@ export function AlbumCardSkeleton() {
 
 export function ReviewCardSkeleton() {
   return (
-    <div className="bg-surface-2 border border-border rounded-2xl overflow-hidden">
+    <div className="bg-surface-2 rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         <Skeleton className="w-8 h-8 rounded-full shrink-0" />
@@ -38,7 +38,7 @@ export function ReviewCardSkeleton() {
         </div>
       </div>
       {/* Album strip */}
-      <div className="mx-4 mb-3 p-3 bg-surface-3 rounded-xl border border-border flex items-center gap-3">
+      <div className="mx-4 mb-3 p-3 bg-surface-3 rounded-xl flex items-center gap-3">
         <Skeleton className="w-14 h-14 rounded-lg shrink-0" />
         <div className="flex-1 space-y-2">
           <Skeleton className="h-3.5 w-3/5" />

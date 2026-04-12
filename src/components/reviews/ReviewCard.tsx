@@ -26,7 +26,7 @@ export function ReviewCard({ review, showAlbum = false, onEdit, onDelete, index 
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, delay: index * 0.04 }}
-      className="bg-surface-2 border border-border rounded-2xl overflow-hidden"
+      className="bg-surface-2 rounded-2xl overflow-hidden"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3">
@@ -72,7 +72,7 @@ export function ReviewCard({ review, showAlbum = false, onEdit, onDelete, index 
       {showAlbum && (
         <Link
           href={`/albums/${review.album.slug}`}
-          className="flex items-center gap-3 mx-4 mb-3 p-3 bg-surface-3 rounded-xl border border-border hover:border-border-light transition-colors"
+          className="flex items-center gap-3 mx-4 mb-3 p-3 bg-surface-3 rounded-xl transition-colors"
         >
           {review.album.coverUrl && (
             <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0">
