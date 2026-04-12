@@ -74,7 +74,7 @@ export function AlbumStatusMenu({ albumId, currentStatus }: AlbumStatusMenuProps
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.12, ease: "easeOut" }}
-              className="absolute top-full left-0 mt-2 w-48 bg-surface-2 rounded-xl shadow-2xl shadow-black/80 z-20 overflow-hidden"
+              className="absolute top-full left-0 mt-2 w-48 rounded-xl shadow-2xl shadow-black/80 z-20 overflow-hidden" style={{ backgroundColor: "#1a1a24" }}
             >
               {options.map((opt) => {
                 const Icon = opt.icon;
