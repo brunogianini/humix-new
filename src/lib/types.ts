@@ -227,8 +227,8 @@ export interface Recommendation {
     slug: string;
     coverUrl: string | null;
     releaseYear: number | null;
-    inHumix: boolean;
-    spotifyId: string | null;
+    inHumix?: boolean;
+    spotifyId?: string | null;
     artist: {
       id: string;
       name: string;

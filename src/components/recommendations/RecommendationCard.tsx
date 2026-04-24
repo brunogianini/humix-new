@@ -30,7 +30,7 @@ export function RecommendationCard({ rec, index, maxScore }: RecommendationCardP
     influencedBy.matchingGenres.length === 0 ||
     influencedBy.album.artist.slug === album.artist.slug;
 
-  const inSystem = album.inHumix || !!importedSlug;
+  const inSystem = album.inHumix !== false || !!importedSlug;
   const albumSlug = importedSlug ?? album.slug;
 
   const handleSave = () => {
