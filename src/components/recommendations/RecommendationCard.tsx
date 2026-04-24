@@ -3,10 +3,11 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Heart, Sparkles, ChevronRight } from "lucide-react";
+import { Heart, Sparkles, ChevronRight, Plus, Loader2 } from "lucide-react";
 import { Recommendation } from "@/lib/types";
 import { StarRating } from "@/components/ui/StarRating";
-import { useSetAlbumStatus } from "@/hooks/useAlbums";
+import { useSetAlbumStatus, useImportAlbum } from "@/hooks/useAlbums";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 interface RecommendationCardProps {
@@ -18,7 +19,10 @@ interface RecommendationCardProps {
 export function RecommendationCard({ rec, index, maxScore }: RecommendationCardProps) {
   const [saved, setSaved] = useState(false);
   const [animating, setAnimating] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importedSlug, setImportedSlug] = useState<string | null>(null);
   const { mutate: setStatus } = useSetAlbumStatus();
+  const { mutateAsync: importAlbum } = useImportAlbum();
 
   const percent = Math.round((rec.score / maxScore) * 100);
   const { album, influencedBy } = rec;
@@ -26,12 +30,33 @@ export function RecommendationCard({ rec, index, maxScore }: RecommendationCardP
     influencedBy.matchingGenres.length === 0 ||
     influencedBy.album.artist.slug === album.artist.slug;
 
+  const inSystem = album.inHumix || !!importedSlug;
+  const albumSlug = importedSlug ?? album.slug;
+
   const handleSave = () => {
     if (saved) return;
     setAnimating(true);
     setSaved(true);
     setStatus({ albumId: album.id, status: "WANT_TO_LISTEN" });
     setTimeout(() => setAnimating(false), 600);
+  };
+
+  const handleImport = async () => {
+    if (!album.spotifyId || importing) return;
+    setImporting(true);
+    try {
+      const imported = await importAlbum(album.spotifyId);
+      setImportedSlug(imported.slug);
+      setSaved(true);
+      toast.success(`"${album.title}" adicionado ao catálogo!`, {
+        label: "Ver álbum",
+        href: `/albums/${imported.slug}`,
+      });
+    } catch {
+      toast.error("Não foi possível adicionar o álbum.");
+    } finally {
+      setImporting(false);
+    }
   };
 
   return (
@@ -55,30 +80,42 @@ export function RecommendationCard({ rec, index, maxScore }: RecommendationCardP
         {/* Album header */}
         <div className="flex gap-4">
           {/* Cover */}
-          <Link href={`/albums/${album.slug}`} className="shrink-0">
-            <div className="relative w-20 h-20 rounded-xl overflow-hidden shadow-lg shadow-black/40">
-              {album.coverUrl ? (
-                <Image
-                  src={album.coverUrl}
-                  alt={album.title}
-                  fill
-                  sizes="80px"
-                  className="object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-surface-3" />
-              )}
+          {inSystem ? (
+            <Link href={`/albums/${albumSlug}`} className="shrink-0">
+              <div className="relative w-20 h-20 rounded-xl overflow-hidden shadow-lg shadow-black/40">
+                {album.coverUrl ? (
+                  <Image src={album.coverUrl} alt={album.title} fill sizes="80px" className="object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-surface-3" />
+                )}
+              </div>
+            </Link>
+          ) : (
+            <div className="shrink-0">
+              <div className="relative w-20 h-20 rounded-xl overflow-hidden shadow-lg shadow-black/40">
+                {album.coverUrl ? (
+                  <Image src={album.coverUrl} alt={album.title} fill sizes="80px" className="object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-surface-3" />
+                )}
+              </div>
             </div>
-          </Link>
+          )}
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <Link
-              href={`/albums/${album.slug}`}
-              className="text-sm font-bold text-foreground leading-snug hover:text-accent transition-colors line-clamp-2"
-            >
-              {album.title}
-            </Link>
+            {inSystem ? (
+              <Link
+                href={`/albums/${albumSlug}`}
+                className="text-sm font-bold text-foreground leading-snug hover:text-accent transition-colors line-clamp-2"
+              >
+                {album.title}
+              </Link>
+            ) : (
+              <span className="text-sm font-bold text-foreground leading-snug line-clamp-2">
+                {album.title}
+              </span>
+            )}
             <Link
               href={`/artists/${album.artist.slug}`}
               className="text-xs text-muted hover:text-foreground-dim transition-colors mt-0.5 block"
@@ -167,33 +204,50 @@ export function RecommendationCard({ rec, index, maxScore }: RecommendationCardP
 
         {/* Actions */}
         <div className="flex items-center gap-2 mt-4">
-          <button
-            onClick={handleSave}
-            className={cn(
-              "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all flex-1 justify-center",
-              saved
-                ? "bg-pink-400/15 text-pink-400 border border-pink-400/20"
-                : "bg-white/5 hover:bg-pink-400/10 text-muted hover:text-pink-400 border border-white/[0.06] hover:border-pink-400/20"
-            )}
-          >
-            <motion.div
-              animate={animating ? { scale: [1, 1.4, 1] } : {}}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+          {inSystem ? (
+            <>
+              <button
+                onClick={handleSave}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all flex-1 justify-center",
+                  saved
+                    ? "bg-pink-400/15 text-pink-400 border border-pink-400/20"
+                    : "bg-white/5 hover:bg-pink-400/10 text-muted hover:text-pink-400 border border-white/[0.06] hover:border-pink-400/20"
+                )}
+              >
+                <motion.div
+                  animate={animating ? { scale: [1, 1.4, 1] } : {}}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                >
+                  <Heart size={14} className={cn("transition-all", saved && "fill-pink-400")} />
+                </motion.div>
+                {saved ? "Adicionado à lista" : "Quero ouvir"}
+              </button>
+              <Link
+                href={`/albums/${albumSlug}`}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-muted hover:text-foreground bg-white/5 hover:bg-white/8 border border-white/[0.06] transition-all"
+              >
+                Ver álbum <ChevronRight size={13} />
+              </Link>
+            </>
+          ) : (
+            <button
+              onClick={handleImport}
+              disabled={importing || !album.spotifyId}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all flex-1 justify-center",
+                "bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 hover:border-accent/40",
+                (importing || !album.spotifyId) && "opacity-60 cursor-not-allowed"
+              )}
             >
-              <Heart
-                size={14}
-                className={cn("transition-all", saved && "fill-pink-400")}
-              />
-            </motion.div>
-            {saved ? "Adicionado à lista" : "Quero ouvir"}
-          </button>
-
-          <Link
-            href={`/albums/${album.slug}`}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-muted hover:text-foreground bg-white/5 hover:bg-white/8 border border-white/[0.06] transition-all"
-          >
-            Ver álbum <ChevronRight size={13} />
-          </Link>
+              {importing ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Plus size={14} />
+              )}
+              {importing ? "Adicionando..." : "Adicionar ao catálogo"}
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
