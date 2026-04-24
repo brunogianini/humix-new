@@ -7,6 +7,7 @@ import {
   Search,
   BarChart2,
   Rss,
+  Sparkles,
   User,
   Settings,
   LogOut,
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/search", label: "Buscar", icon: Search },
   { href: "/charts", label: "Rankings", icon: BarChart2 },
   { href: "/feed", label: "Feed", icon: Rss },
+  { href: "/recommendations", label: "Para você", icon: Sparkles },
 ];
 
 export function Sidebar() {

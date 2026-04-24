@@ -218,6 +218,47 @@ export interface SpotifySearchResult {
   importedSlug: string | null;
 }
 
+// ── Recommendation ─────────────────────────────────────────────────────────
+
+export interface Recommendation {
+  album: {
+    id: string;
+    title: string;
+    slug: string;
+    coverUrl: string | null;
+    releaseYear: number | null;
+    artist: {
+      id: string;
+      name: string;
+      slug: string;
+      imageUrl: string | null;
+    };
+    genres: Genre[];
+    avgRating: number;
+    reviewCount: number;
+  };
+  score: number;
+  influencedBy: {
+    album: {
+      id: string;
+      title: string;
+      slug: string;
+      coverUrl: string | null;
+      releaseYear: number | null;
+      artist: {
+        name: string;
+        slug: string;
+      };
+    };
+    rating: number;
+    matchingGenres: string[];
+  };
+}
+
+export interface RecommendationsResponse {
+  recommendations: Recommendation[];
+}
+
 // ── Auth ───────────────────────────────────────────────────────────────────
 
 export interface AuthTokens {

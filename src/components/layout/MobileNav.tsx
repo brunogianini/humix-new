@@ -1,15 +1,15 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, BarChart2, Rss, User } from "lucide-react";
+import { Home, Search, Rss, Sparkles, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
 
 const navItems = [
   { href: "/", label: "Início", icon: Home },
   { href: "/search", label: "Buscar", icon: Search },
-  { href: "/charts", label: "Rankings", icon: BarChart2 },
   { href: "/feed", label: "Feed", icon: Rss },
+  { href: "/recommendations", label: "Para você", icon: Sparkles },
 ];
 
 export function MobileNav() {
